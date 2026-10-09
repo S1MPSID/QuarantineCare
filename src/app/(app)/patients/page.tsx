@@ -11,7 +11,7 @@ import { usePatientDayStatus } from "@/hooks/use-patient-day-status";
 function PatientRow({ patientId }: { patientId: string }) {
   const { repo } = useApp();
   const patient = repo.getPatient(patientId)!;
-  const status = usePatientDayStatus(patient);
+  const status = usePatientDayStatus(patient.id);
   const room = repo.getDatabase().rooms.find((r) => r.id === patient.roomId);
 
   return (

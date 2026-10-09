@@ -2,20 +2,19 @@ import { useMemo } from "react";
 import { useApp } from "@/contexts/app-provider";
 import { todayFacilityDate } from "@/domain/dates";
 import { hasRoutineReadingForDate, isFever } from "@/domain/temperature";
-import type { Patient } from "@/domain/types";
 
-export function usePatientDayStatus(patient: Patient) {
+export function usePatientDayStatus(patientId: string) {
   const { repo } = useApp();
   const settings = repo.getSettings();
   const today = todayFacilityDate(settings.timezone);
 
   return useMemo(() => {
-    const readings = repo.getPatientReadings(patient.id);
+    const readings = repo.getPatientReadings(patientId);
     const todayReading = hasRoutineReadingForDate(readings, today);
     const visit = repo
-      .getPatientVisits(patient.id)
+      .getPatientVisits(patientId)
       .find((v) => v.facilityLocalDate === today);
-    const feverFree = repo.getFeverFree(patient.id);
+    const feverFree = repo.getFeverFree(patientId);
     const latest = readings[0];
     return {
       today,
@@ -27,5 +26,5 @@ export function usePatientDayStatus(patient: Patient) {
         todayReading &&
         isFever(todayReading.temperatureCelsius, settings.feverThresholdCelsius),
     };
-  }, [patient.id, repo, settings.feverThresholdCelsius, settings.timezone, today]);
+  }, [patientId, repo, settings.feverThresholdCelsius, today]);
 }

@@ -75,18 +75,20 @@ export default function SettingsPage() {
         </ul>
       </Card>
 
-      <Card>
-        <CardTitle className="mb-4">Reset demo data</CardTitle>
-        <p className="mb-4 text-sm text-slate-600">Restores the initial synthetic dataset in this browser. Does not affect a real Supabase database.</p>
-        {!confirmReset ? (
-          <Button variant="danger" onClick={() => setConfirmReset(true)}>Reset demo data</Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="danger" onClick={() => { resetDemoData(); setConfirmReset(false); setMessage("Demo data reset."); }}>Confirm reset</Button>
-            <Button variant="secondary" onClick={() => setConfirmReset(false)}>Cancel</Button>
-          </div>
-        )}
-      </Card>
+      {isDemoMode && (
+        <Card>
+          <CardTitle className="mb-4">Reset demo data</CardTitle>
+          <p className="mb-4 text-sm text-slate-600">Restores the initial synthetic dataset in this browser. Does not affect a real Supabase database.</p>
+          {!confirmReset ? (
+            <Button variant="danger" onClick={() => setConfirmReset(true)}>Reset demo data</Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="danger" onClick={() => { resetDemoData(); setConfirmReset(false); setMessage("Demo data reset."); }}>Confirm reset</Button>
+              <Button variant="secondary" onClick={() => setConfirmReset(false)}>Cancel</Button>
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { addDays, subDays } from "date-fns";
+import { subDays } from "date-fns";
 import type { DemoDatabase, Patient, Room, TemperatureReading } from "@/domain/types";
 import { toFacilityLocalDate } from "@/domain/dates";
 import { createId } from "./id";

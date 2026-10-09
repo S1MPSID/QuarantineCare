@@ -37,11 +37,11 @@ const navItems: {
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, role, isDemoMode, facilityDate, logout } = useApp();
+  const { repo, user, role, isDemoMode, facilityDate, logout, syncError } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const settings = useApp().repo.getSettings();
+  const settings = repo.getSettings();
 
   useEffect(() => {
     if (!user || !role) router.replace("/login");
@@ -127,7 +127,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {isDemoMode && <Badge variant="warning">Demo Mode</Badge>}
+            {isDemoMode ? (
+              <Badge variant="warning">Demo Mode</Badge>
+            ) : (
+              <Badge variant="success">Connected</Badge>
+            )}
             <div className="text-right">
               <p className="text-sm font-medium">{user.fullName}</p>
               <p className="text-xs capitalize text-slate-500">{role}</p>
@@ -145,6 +149,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
+        {syncError && (
+          <div role="alert" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 lg:px-8">
+            <strong className="font-semibold">Change not saved to Supabase:</strong>{" "}
+            {syncError.message}
+          </div>
+        )}
         <main className="flex-1 p-4 lg:p-8">{children}</main>
       </div>
     </div>

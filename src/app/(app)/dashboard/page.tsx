@@ -34,7 +34,7 @@ function ProgressBar({ label, pct }: { label: string; pct: number }) {
 }
 
 export default function DashboardPage() {
-  const { repo, role, refresh } = useApp();
+  const { repo, role, reload } = useApp();
   const metrics = repo.getDashboardMetrics();
   const settings = repo.getSettings();
   const today = todayFacilityDate(settings.timezone);
@@ -69,7 +69,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-slate-900">Operations Overview</h1>
           <p className="text-sm text-slate-500">Live metrics from synthetic demo census</p>
         </div>
-        <Button variant="secondary" onClick={refresh}>Refresh data</Button>
+        <Button variant="secondary" onClick={() => void reload()}>Refresh data</Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

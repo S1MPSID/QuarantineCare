@@ -10,13 +10,14 @@ import { usePatientDayStatus } from "@/hooks/use-patient-day-status";
 export default function PatientDetailPage() {
   const params = useParams();
   const { repo, role } = useApp();
-  const patient = repo.getPatient(String(params.id));
+  const patientId = String(params.id);
+  const patient = repo.getPatient(patientId);
+  const status = usePatientDayStatus(patientId);
 
   if (!patient) {
     return <p className="text-sm text-slate-500">Patient not found.</p>;
   }
 
-  const status = usePatientDayStatus(patient);
   const room = repo.getDatabase().rooms.find((r) => r.id === patient.roomId);
   const readings = repo.getPatientReadings(patient.id);
   const visits = repo.getPatientVisits(patient.id);

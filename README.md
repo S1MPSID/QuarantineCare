@@ -54,7 +54,7 @@ Built for the **FactWise Technical Product Manager** assessment. QuarantineCare 
 | Charts | **Recharts** |
 | Dates | **date-fns** + facility-timezone-aware helpers (`src/domain/dates.ts`) |
 | Forms | Controlled forms + **Zod** (installed) |
-| Backend (optional) | **Supabase** (PostgreSQL + Auth) — schema provided; wiring in progress |
+| Backend (optional) | **Supabase** (PostgreSQL + Auth + RLS) — repository adapter, real sign-in, and SQL migrations included |
 | Persistence (default) | Browser `localStorage` via Demo Mode |
 | Testing | **Vitest** + **Testing Library** |
 | Deployment | **Vercel** (frontend), **Supabase** (optional backend) |
@@ -239,15 +239,21 @@ factwise/
 │   │   ├── supabase/client.ts      # browser client
 │   │   ├── supabase/server.ts      # server client
 │   │   └── utils.ts
-│   ├── middleware.ts               # Supabase session refresh
+│   ├── proxy.ts                    # Supabase session refresh (Next 16 proxy)
 │   ├── services/
-│   │   ├── demo-repository.ts      # data-access implementation
+│   │   ├── demo-repository.ts      # in-memory/localStorage data access
+│   │   ├── supabase-repository.ts  # Supabase loader + write-through sync
+│   │   ├── mappers.ts              # row <-> domain conversion
 │   │   ├── demo-storage.ts         # localStorage adapter
 │   │   ├── seed-data.ts            # synthetic dataset
 │   │   ├── id.ts
 │   │   └── demo-repository.test.ts # business-rule tests
 │   └── test/setup.ts
-├── supabase/migrations/001_initial_schema.sql
+├── supabase/migrations/
+│   ├── 001_initial_schema.sql
+│   ├── 002_seed_base.sql
+│   ├── 003_seed_demo.sql
+│   └── 004_rls.sql
 ├── .env.example
 ├── CONTEXT.md                      # implementation progress log
 ├── startup.md                      # getting-started guide
@@ -335,14 +341,30 @@ cp .env.example .env.local
 
 ## Supabase Setup (Optional)
 
-Supabase integration is **partially implemented** (client/server helpers + middleware session refresh exist; repository + auth wiring in progress — see [`CONTEXT.md`](./CONTEXT.md) for current status).
+QuarantineCare runs fully in **Demo Mode** without a backend. To use a shared Supabase (PostgreSQL + Auth) database, the app ships with a repository adapter (`SupabaseRepository`), real email/password sign-in, and Row Level Security migrations. When `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set, the login page enables Supabase sign-in; the **Demo Access** panel remains available as a fallback.
 
-1. **Create a project** at [supabase.com](https://supabase.com).
-2. **Apply the schema** — run `supabase/migrations/001_initial_schema.sql` in the SQL Editor (or via `supabase db push` with the CLI).
-3. **Seed users and rooms** — create auth users in Authentication → Users, matching `users` table rows with roles (`nurse` / `doctor` / `administrator`), plus the 74 rooms and a `facility_settings` row.
-4. **Configure RLS** — enable Row Level Security on every table and add role-based policies so writes are authorized server-side (never rely on frontend-only checks).
-5. **Set env vars** — add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to `.env.local` (locally) and to your Vercel project settings.
-6. **Complete the repository** — implement `SupabaseRepository` with the same interface as `DemoRepository` and select it in `app-provider.tsx` when `isSupabaseConfigured()` is true.
+Apply the migrations **in order** in the Supabase SQL Editor (or with the CLI):
+
+1. `supabase/migrations/001_initial_schema.sql` — tables, enums, and uniqueness constraints.
+2. `supabase/migrations/002_seed_base.sql` — links `public.users` to `auth.users`, installs the profile-sync trigger, and seeds 74 rooms + facility settings.
+3. **Create the three auth users** (Authentication → Users → Add user) with metadata:
+   ```json
+   { "role": "nurse", "full_name": "Priya Sharma" }
+   ```
+   (`role` is one of `nurse` / `doctor` / `administrator`). The trigger creates the matching `public.users` profile automatically.
+4. `supabase/migrations/003_seed_demo.sql` — loads the synthetic demo dataset (run **after** the users exist).
+5. `supabase/migrations/004_rls.sql` — enables Row Level Security with role-scoped write policies.
+
+Then create `.env.local`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-or-anon-key>
+```
+
+Use the **publishable** (`sb_publishable_…`) or legacy **anon** key only. Never put the **secret** / `service_role` key in frontend code.
+
+**How the adapter works:** on sign-in the app loads the facility dataset into memory and reuses the same domain/validation logic as Demo Mode. Mutations are applied optimistically and mirrored to Postgres with a serialized diff-and-write. If a write is rejected (RLS or a uniqueness constraint), the header shows a sync-error banner. The database constraints (`one_routine_temp_per_patient_day`, `one_active_patient_per_room`, `doctor_visits(patient_id, facility_local_date)`) and RLS policies are the real security/enforcement boundary — the client-side role checks are only for UX.
 
 ---
 
@@ -376,8 +398,8 @@ Host PostgreSQL, Auth, and RLS on Supabase; point the env vars above at the proj
 ## Known Limitations
 
 - **Demo Mode is single-browser** — `localStorage` is per-origin/per-browser; it is not a secure multi-user database. Concurrent tabs share data but have no server-side concurrency control.
-- **Supabase is not fully wired** — auth helpers, middleware, and SQL schema exist, but `SupabaseRepository`, real login, RLS policies, and DB seeding remain in progress (tracked in `CONTEXT.md`).
-- **Role checks in Demo Mode are client-side** — adequate for demonstration, insufficient for real security.
+- **Supabase mode uses optimistic write-through** — mutations update memory immediately and are mirrored to Postgres asynchronously; a failed write (RLS/constraint) surfaces a banner and reconciles on refresh. Supabase Realtime multi-tab sync is not yet wired.
+- **Role checks in Demo Mode are client-side** — adequate for demonstration, insufficient for real security. In Supabase mode, **RLS policies** enforce access server-side.
 - **Seed scenarios are concentrated** — rich edge cases live on featured patients; overall occupancy reflects the synthetic admissions/discharges/deaths.
 - **15% mortality benchmark** comes from the problem statement; it is not a validated prediction for small sample sizes (stated in-app).
 - **Not for clinical use** — no diagnosis, treatment, or medical-device integration; no HIPAA/GDPR compliance claims.
