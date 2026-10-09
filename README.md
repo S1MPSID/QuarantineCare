@@ -372,26 +372,28 @@ Use the **publishable** (`sb_publishable_…`) or legacy **anon** key only. Neve
 
 ### Vercel (frontend)
 
-```bash
-npm run build      # verify locally first
-npm test           # and run tests
-```
+Prerequisites: Node 20.9+ (pinned via `engines`), a GitHub account, and a Vercel account.
 
-Then either:
+1. **Verify locally first:**
+   ```bash
+   npm ci             # clean install from the committed lockfile
+   npm run lint
+   npm test
+   npm run build
+   ```
+2. **Deploy** — pick one:
+   - **Git integration (recommended):** import the repo at [vercel.com/new](https://vercel.com/new). Next.js is auto-detected — no `vercel.json` needed. Every push to `main` redeploys.
+   - **Vercel CLI:** `npx vercel` (preview) then `npx vercel --prod` (production), following the prompts.
+3. **Environment variables** (Project → Settings → Environment Variables; applies to Production + Preview):
+   - **Demo Mode only:** none required — the app works immediately.
+   - **With Supabase:** set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (use the **publishable**/anon key — never the secret key), then redeploy.
+4. **Redeploy** after adding env vars so the new values are inlined into the client bundle.
 
-- **Vercel CLI:** `npx vercel` and follow the prompts, or
-- **Git integration:** import the repository at [vercel.com/new](https://vercel.com/new) — Next.js is auto-detected, no config file needed.
-
-Environment configuration:
-
-- **Demo Mode deployment:** no env vars required — the app works immediately.
-- **With Supabase:** add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Project → Settings → Environment Variables, then redeploy.
+> `.env.local` is gitignored; `.env.example` documents the two variables. Production values are configured only in the Vercel dashboard.
 
 ### Supabase (backend)
 
-Host PostgreSQL, Auth, and RLS on Supabase; point the env vars above at the project and apply the migration + seed as described in [Supabase Setup](#supabase-setup-optional).
-
-> **Note:** This build has not been deployed in the current session (no Vercel credentials available). Do not expect a public URL until a deployment actually succeeds.
+Host PostgreSQL, Auth, and RLS on Supabase; point the env vars above at the project and apply the migrations as described in [Supabase Setup](#supabase-setup-optional). Add the deployed Vercel URL under **Authentication → URL Configuration → Redirect URLs** if you later enable magic-link/OAuth sign-in (email/password needs no callback).
 
 ---
 
