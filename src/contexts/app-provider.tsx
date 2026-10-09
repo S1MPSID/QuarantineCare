@@ -54,7 +54,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [repo, setRepo] = useState<DemoRepository | null>(null);
   const [mode, setMode] = useState<"demo" | "supabase" | null>(null);
   const [session, setSession] = useState<{ userId: string } | null>(null);
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
   const [syncError, setSyncError] = useState<SyncError | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
